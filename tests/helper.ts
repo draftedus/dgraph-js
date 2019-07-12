@@ -31,7 +31,8 @@ export function areLinReadsEqual(a: dgraph.LinRead, b: dgraph.LinRead): boolean 
     return ans;
 }
 
-export const SERVER_ADDR = "localhost:9080";
+// tslint:disable-next-line strict-boolean-expressions
+export const SERVER_ADDR = process.env.DGRAPH_SERVER_ADDR || "localhost:9080";
 export const SERVER_CREDENTIALS = grpc.credentials.createInsecure();
 
 export function createClient(): dgraph.DgraphClient {
@@ -51,7 +52,11 @@ export function dropAll(c: dgraph.DgraphClient): Promise<dgraph.Payload> {
 }
 
 export async function setup(): Promise<dgraph.DgraphClient> {
-    const c = createClient();
+    const stub = new dgraph.DgraphClientStub(SERVER_ADDR, SERVER_CREDENTIALS);
+    await stub.login("groot", "password");
+
+    const c = new dgraph.DgraphClient(stub);
+
     await dropAll(c);
     return c;
 }

@@ -19,23 +19,29 @@ import {
  *
  * 1. Created using Client.newTxn.
  *
- * 2. Various query and qutate calls made.
+ * 2. Various query and mutate calls made.
  *
  * 3. commit or discard used. If any mutations have been made, It's important
  * that at least one of these methods is called to clean up resources. discard
- * is a no-op if dommit has already been called, so it's safe to call discard
+ * is a no-op if commit has already been called, so it's safe to call discard
  * after calling commit.
  */
 export class Txn {
-    private dc: DgraphClient;
-    private ctx: messages.TxnContext;
+    private readonly dc: DgraphClient;
+    private readonly ctx: messages.TxnContext;
     private finished: boolean = false;
     private mutated: boolean = false;
+    private sequencingProp: messages.LinRead.SequencingMap[keyof messages.LinRead.SequencingMap];
 
     constructor(dc: DgraphClient) {
         this.dc = dc;
         this.ctx = new messages.TxnContext();
         this.ctx.setLinRead(this.dc.getLinRead());
+        this.sequencingProp = messages.LinRead.Sequencing.CLIENT_SIDE;
+    }
+
+    public sequencing(sequencing: messages.LinRead.SequencingMap[keyof messages.LinRead.SequencingMap]): void {
+        this.sequencingProp = sequencing;
     }
 
     /**
@@ -43,8 +49,8 @@ export class Txn {
      * need to be made in the same transaction, it's convenient to chain the method,
      * e.g. client.newTxn().query("...").
      */
-    public query(q: string, options?: grpc.CallOptions | null): Promise<types.Response> {
-        return this.queryWithVars(q, null, options);
+    public query(q: string, metadata?: grpc.Metadata, options?: grpc.CallOptions): Promise<types.Response> {
+        return this.queryWithVars(q, undefined, metadata, options);
     }
 
     /**
@@ -53,8 +59,9 @@ export class Txn {
      */
     public async queryWithVars(
         q: string,
-        vars?: { [k: string]: any } | null, // tslint:disable-line no-any
-        options?: grpc.CallOptions | null,
+        vars?: { [k: string]: any }, // tslint:disable-line no-any
+        metadata?: grpc.Metadata,
+        options?: grpc.CallOptions,
     ): Promise<types.Response> {
         if (this.finished) {
             this.dc.debug(`Query request (ERR_FINISHED):\nquery = ${q}\nvars = ${vars}`);
@@ -64,8 +71,13 @@ export class Txn {
         const req = new messages.Request();
         req.setQuery(q);
         req.setStartTs(this.ctx.getStartTs());
-        req.setLinRead(this.ctx.getLinRead());
-        if (vars != null) {
+
+        const linRead = this.ctx.getLinRead();
+        // tslint:disable-next-line no-unsafe-any
+        linRead.setSequencing(this.sequencingProp);
+        req.setLinRead(linRead);
+
+        if (vars !== undefined) {
             const varsMap = req.getVarsMap();
             Object.keys(vars).forEach((key: string) => {
                 const value = vars[key];
@@ -77,7 +89,7 @@ export class Txn {
         this.dc.debug(`Query request:\n${stringifyMessage(req)}`);
 
         const c = this.dc.anyClient();
-        const res = types.createResponse(await c.query(req, options));
+        const res = types.createResponse(await c.query(req, metadata, options));
         this.mergeContext(res.getTxn());
         this.dc.debug(`Query response:\n${stringifyMessage(res)}`);
 
@@ -96,7 +108,8 @@ export class Txn {
      * If the mutation fails, then the transaction is discarded and all future
      * operations on it will fail.
      */
-    public async mutate(mu: types.Mutation, options?: grpc.CallOptions | null): Promise<messages.Assigned> {
+    public async mutate(
+        mu: types.Mutation, metadata?: grpc.Metadata, options?: grpc.CallOptions): Promise<messages.Assigned> {
         if (this.finished) {
             this.dc.debug(`Mutate request (ERR_FINISHED):\nmutation = ${stringifyMessage(mu)}`);
             throw ERR_FINISHED;
@@ -109,13 +122,13 @@ export class Txn {
         let ag: messages.Assigned;
         const c = this.dc.anyClient();
         try {
-            ag = await c.mutate(<messages.Mutation>mu, options);
+            ag = await c.mutate(<messages.Mutation>mu, metadata, options);
         } catch (e) {
             // Since a mutation error occurred, the txn should no longer be used (some
             // mutations could have applied but not others, but we don't know which ones).
             // Discarding the transaction enforces that the user cannot use the txn further.
             try {
-                await this.discard();
+                await this.discard(metadata, options);
             } catch (e) {
                 // Ignore error - user should see the original error.
             }
@@ -145,7 +158,7 @@ export class Txn {
      * It's up to the user to decide if they wish to retry. In this case, the user
      * should create a new transaction.
      */
-    public async commit(options?: grpc.CallOptions | null): Promise<void> {
+    public async commit(metadata?: grpc.Metadata, options?: grpc.CallOptions): Promise<void> {
         if (this.finished) {
             throw ERR_FINISHED;
         }
@@ -157,7 +170,7 @@ export class Txn {
 
         const c = this.dc.anyClient();
         try {
-            await c.commitOrAbort(this.ctx, options);
+            await c.commitOrAbort(this.ctx, metadata, options);
         } catch (e) {
             throw isAbortedError(e) ? ERR_ABORTED : e;
         }
@@ -173,7 +186,7 @@ export class Txn {
      * is unavailable. In these cases, the server will eventually do the transaction
      * clean up.
      */
-    public async discard(options?: grpc.CallOptions | null): Promise<void> {
+    public async discard(metadata?: grpc.Metadata, options?: grpc.CallOptions): Promise<void> {
         if (this.finished) {
             return;
         }
@@ -185,11 +198,11 @@ export class Txn {
 
         this.ctx.setAborted(true);
         const c = this.dc.anyClient();
-        await c.commitOrAbort(this.ctx, options);
+        await c.commitOrAbort(this.ctx, metadata, options);
     }
 
-    private mergeContext(src?: messages.TxnContext | null): void {
-        if (src == null) {
+    private mergeContext(src?: messages.TxnContext): void {
+        if (src === undefined) {
             // This condition will be true only if the server doesn't return a txn context after a query or mutation.
             return;
         }

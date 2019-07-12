@@ -1,13 +1,16 @@
 # dgraph-js [![npm version](https://img.shields.io/npm/v/dgraph-js.svg?style=flat)](https://www.npmjs.com/package/dgraph-js) [![Build Status](https://img.shields.io/travis/dgraph-io/dgraph-js/master.svg?style=flat)](https://travis-ci.org/dgraph-io/dgraph-js) [![Coverage Status](https://img.shields.io/coveralls/github/dgraph-io/dgraph-js/master.svg?style=flat)](https://coveralls.io/github/dgraph-io/dgraph-js?branch=master)
 
-Official Dgraph client implementation for javascript (Node.js v6 and above),
-using [grpc].
+Official Dgraph client implementation for JavaScript (Node.js v6 and above),
+using [gRPC].
+
+**Looking for browser support? Check out [dgraph-js-http].**
 
 [grpc]: https://grpc.io/
+[dgraph-js-http]: https://github.com/dgraph-io/dgraph-js-http
 
 This client follows the [Dgraph Go client][goclient] closely.
 
-[goclient]: https://github.com/dgraph-io/dgraph/tree/master/client
+[goclient]: https://github.com/dgraph-io/dgo
 
 Before using this client, we highly recommend that you go through [docs.dgraph.io],
 and understand how to run and work with Dgraph.
@@ -27,6 +30,7 @@ and understand how to run and work with Dgraph.
   - [Commit a transaction](#commit-a-transaction)
   - [Cleanup Resources](#cleanup-resources)
   - [Debug mode](#debug-mode)
+- [Examples](#examples)
 - [Development](#development)
   - [Building the source](#building-the-source)
   - [Running tests](#running-tests)
@@ -37,21 +41,23 @@ Install using npm:
 
 ```sh
 npm install dgraph-js grpc --save
+# If you are using Typescript, you might also need:
+# npm install @types/google-protobuf @types/protobufjs --save-dev
 ```
 
 or yarn:
 
 ```sh
 yarn add dgraph-js grpc
+# If you are using Typescript, you might also need:
+# yarn add @types/google-protobuf @types/protobufjs --dev
 ```
 
 ## Quickstart
 
-Build and run the [simple] project in the `examples` folder, which
-contains an end-to-end example of using the Dgraph javascript client. Follow the
+Build and run the [simple][] project in the `examples` folder, which
+contains an end-to-end example of using the Dgraph JavaScript client. Follow the
 instructions in the README of that project.
-
-[simple]: https://github.com/dgraph-io/dgraph-js/tree/master/examples/simple
 
 ## Using a client
 
@@ -92,8 +98,12 @@ await dgraphClient.alter(op);
 
 > NOTE: Many of the examples here use the `await` keyword which requires
 > `async/await` support which is available on Node.js >= v7.6.0. For prior versions,
-> the expressions following `await` can be used just like normal `Promise`
-> instances.
+> the expressions following `await` can be used just like normal `Promise`:
+> 
+> ```js
+> dgraphClient.alter(op)
+>     .then(function(result) { ... }, function(err) { ... })
+> ```
 
 `Operation` contains other fields as well, including drop predicate and drop all.
 Drop all is useful if you wish to discard all the data, and start from a clean
@@ -281,6 +291,15 @@ dgraphClient.setDebugMode(true);
 // Disable debug mode.
 dgraphClient.setDebugMode(false);
 ```
+
+
+## Examples
+
+- [simple][]: Quickstart example of using dgraph-js.
+- [tls][]: Example of using dgraph-js with a Dgraph cluster secured with TLS.
+
+[simple]: ./examples/simple
+[tls]: ./examples/tls
 
 ## Development
 

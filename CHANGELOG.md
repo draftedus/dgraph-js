@@ -7,7 +7,53 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
-## [v1.1.0] - 2017-02-06
+## [v1.3.0-rc1] - 2019-06-12
+
+### Added
+- Support for ACL features in Dgraph v1.1 - login & jwt refresh
+- Updated protobufs to latest version
+- Upgraded all typescript dev libraries to latest version
+- Removed support for null values where appropriate (because typescript barks at those)
+
+### Added
+- `upsert` and `lang` fields to proto message type SchemaNode
+- Option for server-side sequencing
+
+## [v1.2.1] - 2018-03-16
+
+### Fixed
+- Pass `metadata` and `options` arguments to `Txn#discard` in `Txn#mutate`
+
+## [v1.2.0] - 2018-03-12
+
+### Added
+- **[BREAKING]** Optional `metadata` parameter of type `grpc.Metadata` to the
+  `DgraphClientStub` methods. `options` parameter moved to the third position
+  to conform to the `grpc` package API.
+
+  Methods affected - `DgraphClient#alter`, `Txn#query`, `Txn#queryWithVars`,
+  `Txn#mutate`, `Txn#commit` and `Txn#discard`.
+
+  To upgrade to this version, if using any of these methods with the `options`
+  parameter, simply add a `null` argument before the `options` argument. For
+  example, `client.alter(options)` becomes `client.alter(null, options)`
+
+## [v1.1.2] - 2018-03-07
+
+### Added
+- Full compatibility with Dgraph v1.0.4
+- `latency` field to proto message type `Assigned`
+
+## [v1.1.1] - 2018-02-13
+
+### Added
+- Compatibility with grpc v1.9
+
+### Fixed
+- Function `u8ToStr` which was leading to json parse errors
+  ([#17](https://github.com/dgraph-io/dgraph-js/issues/17))
+
+## [v1.1.0] - 2018-02-06
 
 ### Added
 - Full compatibility with Dgraph v1.0.2
@@ -48,7 +94,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - Full compatibility with Dgraph v1.0.0
 
-[Unreleased]: https://github.com/dgraph-io/dgraph-js/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/dgraph-io/dgraph-js/compare/v1.2.1...HEAD
+[v1.2.1]: https://github.com/dgraph-io/dgraph-js/compare/v1.2.0...v1.2.1
+[v1.2.0]: https://github.com/dgraph-io/dgraph-js/compare/v1.1.2...v1.2.0
+[v1.1.2]: https://github.com/dgraph-io/dgraph-js/compare/v1.1.1...v1.1.2
+[v1.1.1]: https://github.com/dgraph-io/dgraph-js/compare/v1.1.0...v1.1.1
 [v1.1.0]: https://github.com/dgraph-io/dgraph-js/compare/v1.0.4...v1.1.0
 [v1.0.4]: https://github.com/dgraph-io/dgraph-js/compare/v1.0.3...v1.0.4
 [v1.0.3]: https://github.com/dgraph-io/dgraph-js/compare/v1.0.2...v1.0.3

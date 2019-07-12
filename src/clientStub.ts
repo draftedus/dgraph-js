@@ -9,53 +9,64 @@ import { promisify1, promisify3 } from "./util";
  * Stub is a stub/client connecting to a single dgraph server instance.
  */
 export class DgraphClientStub {
-    private stub: services.DgraphClient;
-    private promisified: {
+    private readonly stub: services.DgraphClient;
+
+    private accessJwt: string = "";
+    private refreshJwt: string = "";
+
+    private readonly promisified: {
+        login(
+            req: messages.LoginRequest,
+            metadata?: grpc.Metadata,
+            options?: grpc.CallOptions,
+        ): Promise<messages.Response>;
+
         alter(
             op: messages.Operation,
-            metadata: grpc.Metadata | null,
-            options: grpc.CallOptions | null,
+            metadata?: grpc.Metadata,
+            options?: grpc.CallOptions,
         ): Promise<messages.Payload>;
 
         query(
             req: messages.Request,
-            metadata: grpc.Metadata | null,
-            options: grpc.CallOptions | null,
+            metadata?: grpc.Metadata,
+            options?: grpc.CallOptions,
         ): Promise<messages.Response>;
 
         mutate(
             mu: messages.Mutation,
-            metadata: grpc.Metadata | null,
-            options: grpc.CallOptions | null,
+            metadata?: grpc.Metadata,
+            options?: grpc.CallOptions,
         ): Promise<messages.Assigned>;
 
         commitOrAbort(
             ctx: messages.TxnContext,
-            metadata: grpc.Metadata | null,
-            options: grpc.CallOptions | null,
+            metadata?: grpc.Metadata,
+            options?: grpc.CallOptions,
         ): Promise<messages.TxnContext>;
 
         checkVersion(
             check: messages.Check,
-            metadata: grpc.Metadata | null,
-            options: grpc.CallOptions | null,
+            metadata?: grpc.Metadata,
+            options?: grpc.CallOptions,
         ): Promise<messages.Version>;
 
         waitForReady(deadline: grpc.Deadline): Promise<void>;
     };
 
-    constructor(addr?: string | null, credentials?: grpc.ChannelCredentials | null, options?: object | null) {
-        if (addr == null) {
+    constructor(addr?: string, credentials?: grpc.ChannelCredentials, options?: object) {
+        if (addr === undefined) {
             // tslint:disable-next-line no-parameter-reassignment
             addr = "localhost:9080";
         }
-        if (credentials == null) {
+        if (credentials === undefined) {
             // tslint:disable-next-line no-parameter-reassignment
             credentials = grpc.credentials.createInsecure();
         }
 
         this.stub = new services.DgraphClient(addr, credentials, options);
         this.promisified = {
+            login: promisify3(this.stub.login, this.stub),
             alter: promisify3(this.stub.alter, this.stub),
             query: promisify3(this.stub.query, this.stub),
             mutate: promisify3(this.stub.mutate, this.stub),
@@ -65,24 +76,50 @@ export class DgraphClientStub {
         };
     }
 
-    public alter(op: messages.Operation, options?: grpc.CallOptions | null): Promise<messages.Payload> {
-        return this.promisified.alter(op, undefined, options);
+    public async login(
+        userid?: string,
+        password?: string,
+        refreshJwt?: string,
+        metadata?: grpc.Metadata,
+        options?: grpc.CallOptions,
+    ): Promise<messages.Jwt> {
+        const req = new messages.LoginRequest();
+        if (userid !== undefined) {
+          req.setUserid(userid);
+          req.setPassword(password);
+        } else if (refreshJwt !== undefined) {
+          // Use the caller-supplied refreshJwt
+          req.setRefreshToken(refreshJwt);
+        } else {
+          req.setRefreshToken(this.refreshJwt);
+        }
+        const resp = await this.promisified.login(req, this.ensureMetadata(metadata), ensureCallOptions(options));
+        const jwtResponse = messages.Jwt.deserializeBinary(resp.getJson_asU8());
+        this.accessJwt = jwtResponse.getAccessJwt();
+        this.refreshJwt = jwtResponse.getRefreshJwt();
+        return jwtResponse;
     }
 
-    public query(req: messages.Request, options?: grpc.CallOptions | null): Promise<messages.Response> {
-        return this.promisified.query(req, undefined, options);
+    public alter(op: messages.Operation, metadata?: grpc.Metadata, options?: grpc.CallOptions): Promise<messages.Payload> {
+        return this.promisified.alter(op, this.ensureMetadata(metadata), ensureCallOptions(options));
     }
 
-    public mutate(mu: messages.Mutation, options?: grpc.CallOptions | null): Promise<messages.Assigned> {
-        return this.promisified.mutate(mu, undefined, options);
+    public query(req: messages.Request, metadata?: grpc.Metadata, options?: grpc.CallOptions): Promise<messages.Response> {
+        return this.promisified.query(req, this.ensureMetadata(metadata), ensureCallOptions(options));
     }
 
-    public commitOrAbort(ctx: messages.TxnContext, options?: grpc.CallOptions | null): Promise<messages.TxnContext> {
-        return this.promisified.commitOrAbort(ctx, undefined, options);
+    public mutate(mu: messages.Mutation, metadata?: grpc.Metadata, options?: grpc.CallOptions): Promise<messages.Assigned> {
+        return this.promisified.mutate(mu, this.ensureMetadata(metadata), ensureCallOptions(options));
     }
 
-    public checkVersion(check: messages.Check, options?: grpc.CallOptions | null): Promise<messages.Version> {
-        return this.promisified.checkVersion(check, undefined, options);
+    public commitOrAbort(
+        ctx: messages.TxnContext, metadata?: grpc.Metadata, options?: grpc.CallOptions): Promise<messages.TxnContext> {
+        return this.promisified.commitOrAbort(ctx, this.ensureMetadata(metadata), ensureCallOptions(options));
+    }
+
+    public checkVersion(
+        check: messages.Check, metadata?: grpc.Metadata, options?: grpc.CallOptions): Promise<messages.Version> {
+        return this.promisified.checkVersion(check, this.ensureMetadata(metadata), ensureCallOptions(options));
     }
 
     public waitForReady(deadline: grpc.Deadline): Promise<void> {
@@ -96,4 +133,20 @@ export class DgraphClientStub {
     public grpcClient(): grpc.Client {
         return this.stub;
     }
+
+    private ensureMetadata(metadata?: grpc.Metadata): grpc.Metadata {
+        const newMeta = (metadata === undefined) ? new grpc.Metadata() : metadata;
+        if (this.accessJwt !== "") {
+          newMeta.set("accessJwt", this.accessJwt);
+        }
+        return newMeta;
+    }
+
+}
+
+function ensureCallOptions(options?: grpc.CallOptions): grpc.CallOptions {
+    return (options === undefined) ? {
+        propagate_flags: grpc.propagate.DEFAULTS,
+        credentials: undefined,
+    } : options;
 }
