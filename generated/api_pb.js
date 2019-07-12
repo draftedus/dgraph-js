@@ -78,7 +78,9 @@ proto.api.Request.toObject = function(includeInstance, msg) {
     query: jspb.Message.getFieldWithDefault(msg, 1, ""),
     varsMap: (f = msg.getVarsMap()) ? f.toObject(includeInstance, undefined) : [],
     startTs: jspb.Message.getFieldWithDefault(msg, 13, 0),
-    linRead: (f = msg.getLinRead()) && proto.api.LinRead.toObject(includeInstance, f)
+    linRead: (f = msg.getLinRead()) && proto.api.LinRead.toObject(includeInstance, f),
+    readOnly: jspb.Message.getFieldWithDefault(msg, 15, false),
+    bestEffort: jspb.Message.getFieldWithDefault(msg, 16, false)
   };
 
   if (includeInstance) {
@@ -122,7 +124,7 @@ proto.api.Request.deserializeBinaryFromReader = function(msg, reader) {
     case 2:
       var value = msg.getVarsMap();
       reader.readMessage(value, function(message, reader) {
-        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readString, jspb.BinaryReader.prototype.readString);
+        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readString, jspb.BinaryReader.prototype.readString, null, "");
          });
       break;
     case 13:
@@ -133,6 +135,14 @@ proto.api.Request.deserializeBinaryFromReader = function(msg, reader) {
       var value = new proto.api.LinRead;
       reader.readMessage(value,proto.api.LinRead.deserializeBinaryFromReader);
       msg.setLinRead(value);
+      break;
+    case 15:
+      var value = /** @type {boolean} */ (reader.readBool());
+      msg.setReadOnly(value);
+      break;
+    case 16:
+      var value = /** @type {boolean} */ (reader.readBool());
+      msg.setBestEffort(value);
       break;
     default:
       reader.skipField();
@@ -187,6 +197,20 @@ proto.api.Request.serializeBinaryToWriter = function(message, writer) {
       14,
       f,
       proto.api.LinRead.serializeBinaryToWriter
+    );
+  }
+  f = message.getReadOnly();
+  if (f) {
+    writer.writeBool(
+      15,
+      f
+    );
+  }
+  f = message.getBestEffort();
+  if (f) {
+    writer.writeBool(
+      16,
+      f
     );
   }
 };
@@ -267,6 +291,40 @@ proto.api.Request.prototype.clearLinRead = function() {
  */
 proto.api.Request.prototype.hasLinRead = function() {
   return jspb.Message.getField(this, 14) != null;
+};
+
+
+/**
+ * optional bool read_only = 15;
+ * Note that Boolean fields may be set to 0/1 when serialized from a Java server.
+ * You should avoid comparisons like {@code val === true/false} in those cases.
+ * @return {boolean}
+ */
+proto.api.Request.prototype.getReadOnly = function() {
+  return /** @type {boolean} */ (jspb.Message.getFieldWithDefault(this, 15, false));
+};
+
+
+/** @param {boolean} value */
+proto.api.Request.prototype.setReadOnly = function(value) {
+  jspb.Message.setProto3BooleanField(this, 15, value);
+};
+
+
+/**
+ * optional bool best_effort = 16;
+ * Note that Boolean fields may be set to 0/1 when serialized from a Java server.
+ * You should avoid comparisons like {@code val === true/false} in those cases.
+ * @return {boolean}
+ */
+proto.api.Request.prototype.getBestEffort = function() {
+  return /** @type {boolean} */ (jspb.Message.getFieldWithDefault(this, 16, false));
+};
+
+
+/** @param {boolean} value */
+proto.api.Request.prototype.setBestEffort = function(value) {
+  jspb.Message.setProto3BooleanField(this, 16, value);
 };
 
 
@@ -488,15 +546,15 @@ proto.api.Response.prototype.setJson = function(value) {
 
 /**
  * repeated SchemaNode schema = 2;
- * @return {!Array.<!proto.api.SchemaNode>}
+ * @return {!Array<!proto.api.SchemaNode>}
  */
 proto.api.Response.prototype.getSchemaList = function() {
-  return /** @type{!Array.<!proto.api.SchemaNode>} */ (
+  return /** @type{!Array<!proto.api.SchemaNode>} */ (
     jspb.Message.getRepeatedWrapperField(this, proto.api.SchemaNode, 2));
 };
 
 
-/** @param {!Array.<!proto.api.SchemaNode>} value */
+/** @param {!Array<!proto.api.SchemaNode>} value */
 proto.api.Response.prototype.setSchemaList = function(value) {
   jspb.Message.setRepeatedWrapperField(this, 2, value);
 };
@@ -665,7 +723,7 @@ proto.api.Assigned.deserializeBinaryFromReader = function(msg, reader) {
     case 1:
       var value = msg.getUidsMap();
       reader.readMessage(value, function(message, reader) {
-        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readString, jspb.BinaryReader.prototype.readString);
+        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readString, jspb.BinaryReader.prototype.readString, null, "");
          });
       break;
     case 2:
@@ -1159,15 +1217,15 @@ proto.api.Mutation.prototype.setDelNquads = function(value) {
 
 /**
  * repeated NQuad set = 10;
- * @return {!Array.<!proto.api.NQuad>}
+ * @return {!Array<!proto.api.NQuad>}
  */
 proto.api.Mutation.prototype.getSetList = function() {
-  return /** @type{!Array.<!proto.api.NQuad>} */ (
+  return /** @type{!Array<!proto.api.NQuad>} */ (
     jspb.Message.getRepeatedWrapperField(this, proto.api.NQuad, 10));
 };
 
 
-/** @param {!Array.<!proto.api.NQuad>} value */
+/** @param {!Array<!proto.api.NQuad>} value */
 proto.api.Mutation.prototype.setSetList = function(value) {
   jspb.Message.setRepeatedWrapperField(this, 10, value);
 };
@@ -1190,15 +1248,15 @@ proto.api.Mutation.prototype.clearSetList = function() {
 
 /**
  * repeated NQuad del = 11;
- * @return {!Array.<!proto.api.NQuad>}
+ * @return {!Array<!proto.api.NQuad>}
  */
 proto.api.Mutation.prototype.getDelList = function() {
-  return /** @type{!Array.<!proto.api.NQuad>} */ (
+  return /** @type{!Array<!proto.api.NQuad>} */ (
     jspb.Message.getRepeatedWrapperField(this, proto.api.NQuad, 11));
 };
 
 
-/** @param {!Array.<!proto.api.NQuad>} value */
+/** @param {!Array<!proto.api.NQuad>} value */
 proto.api.Mutation.prototype.setDelList = function(value) {
   jspb.Message.setRepeatedWrapperField(this, 11, value);
 };
@@ -2034,14 +2092,14 @@ proto.api.TxnContext.prototype.setAborted = function(value) {
 
 /**
  * repeated string keys = 4;
- * @return {!Array.<string>}
+ * @return {!Array<string>}
  */
 proto.api.TxnContext.prototype.getKeysList = function() {
-  return /** @type {!Array.<string>} */ (jspb.Message.getRepeatedField(this, 4));
+  return /** @type {!Array<string>} */ (jspb.Message.getRepeatedField(this, 4));
 };
 
 
-/** @param {!Array.<string>} value */
+/** @param {!Array<string>} value */
 proto.api.TxnContext.prototype.setKeysList = function(value) {
   jspb.Message.setField(this, 4, value || []);
 };
@@ -2436,7 +2494,7 @@ proto.api.LinRead.deserializeBinaryFromReader = function(msg, reader) {
     case 1:
       var value = msg.getIdsMap();
       reader.readMessage(value, function(message, reader) {
-        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readUint32, jspb.BinaryReader.prototype.readUint64);
+        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readUint32, jspb.BinaryReader.prototype.readUint64, null, 0);
          });
       break;
     default:
@@ -3007,15 +3065,15 @@ proto.api.NQuad.prototype.setLang = function(value) {
 
 /**
  * repeated Facet facets = 7;
- * @return {!Array.<!proto.api.Facet>}
+ * @return {!Array<!proto.api.Facet>}
  */
 proto.api.NQuad.prototype.getFacetsList = function() {
-  return /** @type{!Array.<!proto.api.Facet>} */ (
+  return /** @type{!Array<!proto.api.Facet>} */ (
     jspb.Message.getRepeatedWrapperField(this, proto.api.Facet, 7));
 };
 
 
-/** @param {!Array.<!proto.api.Facet>} value */
+/** @param {!Array<!proto.api.Facet>} value */
 proto.api.NQuad.prototype.setFacetsList = function(value) {
   jspb.Message.setRepeatedWrapperField(this, 7, value);
 };
@@ -3999,14 +4057,14 @@ proto.api.Facet.prototype.setValType = function(value) {
 
 /**
  * repeated string tokens = 4;
- * @return {!Array.<string>}
+ * @return {!Array<string>}
  */
 proto.api.Facet.prototype.getTokensList = function() {
-  return /** @type {!Array.<string>} */ (jspb.Message.getRepeatedField(this, 4));
+  return /** @type {!Array<string>} */ (jspb.Message.getRepeatedField(this, 4));
 };
 
 
-/** @param {!Array.<string>} value */
+/** @param {!Array<string>} value */
 proto.api.Facet.prototype.setTokensList = function(value) {
   jspb.Message.setField(this, 4, value || []);
 };
@@ -4296,14 +4354,14 @@ proto.api.SchemaNode.prototype.setIndex = function(value) {
 
 /**
  * repeated string tokenizer = 4;
- * @return {!Array.<string>}
+ * @return {!Array<string>}
  */
 proto.api.SchemaNode.prototype.getTokenizerList = function() {
-  return /** @type {!Array.<string>} */ (jspb.Message.getRepeatedField(this, 4));
+  return /** @type {!Array<string>} */ (jspb.Message.getRepeatedField(this, 4));
 };
 
 
-/** @param {!Array.<string>} value */
+/** @param {!Array<string>} value */
 proto.api.SchemaNode.prototype.setTokenizerList = function(value) {
   jspb.Message.setField(this, 4, value || []);
 };

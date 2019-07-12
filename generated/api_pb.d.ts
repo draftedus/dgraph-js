@@ -17,6 +17,12 @@ export class Request extends jspb.Message {
   getLinRead(): LinRead | undefined;
   setLinRead(value?: LinRead): void;
 
+  getReadOnly(): boolean;
+  setReadOnly(value: boolean): void;
+
+  getBestEffort(): boolean;
+  setBestEffort(value: boolean): void;
+
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): Request.AsObject;
   static toObject(includeInstance: boolean, msg: Request): Request.AsObject;
@@ -33,6 +39,8 @@ export namespace Request {
     varsMap: Array<[string, string]>,
     startTs: number,
     linRead?: LinRead.AsObject,
+    readOnly: boolean,
+    bestEffort: boolean,
   }
 }
 

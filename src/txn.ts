@@ -31,11 +31,15 @@ export class Txn {
     private ctx: messages.TxnContext;
     private finished: boolean = false;
     private mutated: boolean = false;
+    private readOnly: boolean = false;
+    private bestEffort: boolean = false;
 
-    constructor(dc: DgraphClient) {
+    constructor(dc: DgraphClient, txnOpts?: { readOnly?: boolean, bestEffort?: boolean } | null) {
         this.dc = dc;
         this.ctx = new messages.TxnContext();
         this.ctx.setLinRead(this.dc.getLinRead());
+        this.readOnly = txnOpts ? !!txnOpts.readOnly : false;
+        this.bestEffort = txnOpts ? !!txnOpts.bestEffort : false;
     }
 
     /**
@@ -65,6 +69,9 @@ export class Txn {
         req.setQuery(q);
         req.setStartTs(this.ctx.getStartTs());
         req.setLinRead(this.ctx.getLinRead());
+        req.setReadOnly(this.readOnly);
+        req.setBestEffort(this.bestEffort);
+
         if (vars != null) {
             const varsMap = req.getVarsMap();
             Object.keys(vars).forEach((key: string) => {
